@@ -39,9 +39,10 @@ typedef struct          s_file
     char                *owner; // ok
     char                *team; // ok
     int                 size; // ok
-    int                 c_time; // ok
-    int                 u_time; // ok
-    int                 r_time; // ok
+    ino_t               node_id; // ok
+    time_t              c_time; // ok
+    time_t              u_time; // ok
+    time_t              r_time; // ok
     bool                accessibility;
     struct s_file       **childs; // ok
 }                       t_file;
@@ -88,6 +89,9 @@ void free_data(t_data *data);
 
 //UTILS
 char *ft_strjoin(char *s1, char *s2);
+char **ft_split(const char *str, char charset);
+void to_lower(char *str);
+char *ft_substr(char *s, int start, size_t len);
 
 //ERROR
 
@@ -96,6 +100,9 @@ void    init(t_data *data);
 
 //PARSING
 void parsing(t_data *data, char **argv);
+
+//SORTING
+void sort(t_data *data);
 
 //OUTPUT
 void output(t_data *data);

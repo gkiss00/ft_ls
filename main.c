@@ -11,15 +11,13 @@ static t_file *add_file(t_file *parent, struct dirent *res) {
 
     new_file->name = strdup(res->d_name);
     new_file->type = res->d_type;
-
     new_file->nb_link = 0;
-
     new_file->size = stat_res.st_size;
     new_file->permissions = stat_res.st_mode;
     new_file->c_time = stat_res.st_birthtimespec.tv_sec;
     new_file->u_time = stat_res.st_atimespec.tv_sec;
     new_file->r_time = stat_res.st_ctimespec.tv_sec;
-
+    new_file->node_id = stat_res.st_ino;
     new_file->team = strdup(grp->gr_name);
     int k = 0;
     while(grp->gr_mem[k]) {
@@ -29,6 +27,7 @@ static t_file *add_file(t_file *parent, struct dirent *res) {
     }
     new_file->accessibility = true;
     new_file->childs = NULL;
+
     if(parent == NULL){
         add_root(&data, new_file);
     } else {
@@ -56,9 +55,9 @@ static void read_dir(char *path, int x, bool isChild, t_file *parent) {
             char *new_path = ft_strjoin(path, "/");
             new_path = ft_strjoin(new_path, new_file->name);
             if (new_file->type == DT_DIR && strcmp(new_file->name, ".") != 0 && strcmp(new_file->name, "..") != 0){
-                printf("%s\n", new_file->name);
                 read_dir(new_path, 0, true, new_file);
             }
+            free(new_path);
             ++i;
         }
     }
@@ -73,14 +72,11 @@ int main(int argc, char **argv) {
     t_node *tmp = data.target;
     int x = 0;
     while(tmp) {
-        printf("before: %d\n", x);
         read_dir(tmp->target, x, false, NULL);
         tmp = tmp->next;
-        printf("after: %d\n", x);
         ++x;
     }
-    printf("output\n");
-    // sort(&data);
-    // output(&data);
+    sort(&data);
+    output(&data);
     free_data(&data);
 }

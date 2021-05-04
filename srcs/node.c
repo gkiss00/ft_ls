@@ -5,7 +5,7 @@ void add_root(t_data *data, t_file *new) {
     int     actual_size = file_nb_child2(data->files);
     int     i = 0;
 
-    data->files = malloc((sizeof(t_file *) * actual_size) + 2);
+    data->files = malloc(sizeof(t_file *) * (actual_size + 2));
     while(i < actual_size) {
         data->files[i] = tmp[i];
         ++i;
@@ -105,7 +105,7 @@ int file_nb_child2(t_file **file) {
 
 int file_nb_child(t_file *file) {
     int     i = 0;
-    while(file->childs && file->childs[i]) {
+    while(file && file->childs && file->childs[i]) {
         ++i;
     }
     return (i);
@@ -116,7 +116,7 @@ void file_add_child(t_file *file, t_file *child) {
     int     actual_size = file_nb_child(file);
     int     i = 0;
 
-    file->childs = malloc((sizeof(t_file *) * actual_size) + 2);
+    file->childs = malloc(sizeof(t_file *) * (actual_size + 2));
     while(i < actual_size) {
         file->childs[i] = tmp[i];
         ++i;
@@ -127,24 +127,26 @@ void file_add_child(t_file *file, t_file *child) {
 }
 
 void free_file(t_file *file) {
-    // free(file->name);
-    // free(file->owner);
-    // free(file->team);
+    free(file->name);
+    free(file->owner);
+    free(file->team);
     int i = 0;
     while(file->childs && file->childs[i]) {
+        //printf("file->childs[%d] : %s\n", i, file->childs[i]->name);
         free_file(file->childs[i]);
         ++i;
     }
-    // free(file->childs);
-    // free(file);
+    free(file->childs);
+    free(file);
 }
 
 void free_data(t_data *data) {
     free_node(data->target);
     int i = 0;
     while(data->files && data->files[i]) {
+        //printf("data->files[%d] : %s\n", i, data->files[i]->name);
         free_file(data->files[i]);
         ++i;
     }
-    //free(data->files);
+    free(data->files);
 }
