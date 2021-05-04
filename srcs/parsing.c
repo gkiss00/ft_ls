@@ -22,6 +22,22 @@ static void add_option(t_data *data, char *arg) {
             data->opts.R = true;
         } else if (arg[i] == 't') {
             data->opts.t = true;
+        }else if (arg[i] == 'C') {
+            data->opts.C = true;
+        }else if (arg[i] == 'F') {
+            data->opts.F = true;
+        }else if (arg[i] == 'c') {
+            data->opts.c = true;
+        }else if (arg[i] == 'd') {
+            data->opts.d = true;
+        }else if (arg[i] == 'i') {
+            data->opts.i = true;
+        }else if (arg[i] == 'u') {
+            data->opts.u = true;
+        }else if (arg[i] == 'q') {
+            data->opts.q = true;
+        }else if (arg[i] == '1') {
+            data->opts.one = true;
         }
         ++i;
     }
@@ -32,7 +48,6 @@ void parsing(t_data *data, char **argv) {
     bool on = true;
 
     while(argv[i]) {
-        printf("arg: %s\n", argv[i]);
         if (isOption(argv[i]) && on) {
             add_option(data, argv[i]);
         } else {

@@ -32,41 +32,42 @@ typedef struct          s_node
 
 typedef struct          s_file
 {
-    char                *name;
-    int                 type;
-    int                 permissions;
+    char                *name; // ok
+    int                 type; // ok
+    int                 permissions; // ok
     int                 nb_link;
-    char                *owner;
-    char                *team;
-    int                 size;
-    int                 c_time;
-    int                 u_time;
-    int                 r_time;
+    char                *owner; // ok
+    char                *team; // ok
+    int                 size; // ok
+    int                 c_time; // ok
+    int                 u_time; // ok
+    int                 r_time; // ok
     bool                accessibility;
-    struct s_file       *next;
+    struct s_file       **childs; // ok
 }                       t_file;
 
 typedef struct          s_option
 {
-    bool                R; // recursive in dir
-    bool                r; // reverse the sorting
-    bool                a; // show hidden files
-    bool                l; // show details
-    bool                t; // sort by date
-    bool                C; // sort vertical
-    bool                F; // add a charact after file *for exe /for dir @link |fifos
-    bool                c; // use date of status change instead of modification date for -l -t
-    bool                d; // display repertory as file (without showing what's inside)
-    bool                i; // display node id
-    bool                u; // use date of last access instead of modification date for -l -t
-    bool                q; // print question mark instead of non printable caract in file name
-    bool                one; // 1 file by line
+    bool                R; // recursive in dir || OUTPUT
+    bool                r; // reverse the sorting  || SORTING
+    bool                a; // show hidden files || OUTPUT
+    bool                l; // show details || OUTPUT
+    bool                t; // sort by date || SORTING
+    bool                C; // sort vertical || SORTING ???
+    bool                F; // add a charact after file *for exe /for dir @link |fifos || OUTPUT
+    bool                c; // use date of status change instead of modification date for -l -t || SORTING && OUPUT
+    bool                d; // display repertory as file (without showing what's inside) || OUTPUT
+    bool                i; // display node id ||OUTPUT
+    bool                u; // use date of last access instead of modification date for -l -t || SORTING && OUPUT
+    bool                q; // print question mark instead of non printable caract in file name || OUTPUT
+    bool                one; // 1 file by line || OUTPUT
 }                       t_option;
 
 typedef struct		    s_data
 {
     struct s_option     opts;
     struct s_node       *target;
+    struct s_file       **files;
 }                       t_data;
 
 //NODE
@@ -76,9 +77,14 @@ void node_add_back(t_node **head, t_node *new);
 void free_node(t_node *port);
 
 t_file *new_file(char *name, int type, int p, char *owner, char *team, int size, int c_time, int u_time, int r_time, bool a);
-t_file *file_last(t_file *file);
-void file_add_back(t_file **head, t_file *new);
+t_file *new_empty_file();
+void file_add_child(t_file *file, t_file *child);
+int file_nb_child(t_file *file);
+int file_nb_child2(t_file **file);
 void free_file(t_file *file);
+
+void add_root(t_data *data, t_file *new);
+void free_data(t_data *data);
 
 //ERROR
 
@@ -87,5 +93,8 @@ void    init(t_data *data);
 
 //PARSING
 void parsing(t_data *data, char **argv);
+
+//OUTPUT
+void output(t_data *data);
 
 #endif
