@@ -4,6 +4,7 @@ SRCS				= 	main.c \
 						srcs/parsing.c \
 						srcs/init.c \
 						srcs/output.c \
+						srcs/utils.c \
 
 OBJS				= ${SRCS:.c=.o}
 

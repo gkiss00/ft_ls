@@ -86,6 +86,9 @@ void free_file(t_file *file);
 void add_root(t_data *data, t_file *new);
 void free_data(t_data *data);
 
+//UTILS
+char *ft_strjoin(char *s1, char *s2);
+
 //ERROR
 
 //INIT

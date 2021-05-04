@@ -2,7 +2,7 @@
 
 t_data data;
 
-static void add_file(t_file *parent, struct dirent *res, int i) {
+static t_file *add_file(t_file *parent, struct dirent *res) {
     t_file *new_file = new_empty_file();
     struct stat stat_res;
     struct group *grp;
@@ -29,26 +29,35 @@ static void add_file(t_file *parent, struct dirent *res, int i) {
     }
     new_file->accessibility = true;
     new_file->childs = NULL;
-    if(i == 0){
+    if(parent == NULL){
         add_root(&data, new_file);
     } else {
         file_add_child(parent, new_file);
     }
+    return new_file;
 }
 
-static void read_dir(char *path, int x) {
+static void read_dir(char *path, int x, bool isChild, t_file *parent) {
     DIR *target = opendir(path);
     int i = 0;
 
     if (target) {
         struct dirent *res;
         while((res = readdir(target)) != NULL) {
-            if (res) {
-                printf("i: %d\n", i);
+            t_file *new_file;
+            if(isChild) {
+                new_file = add_file(parent, res);
+            } else {
                 if(i == 0)
-                    add_file(NULL, res, i);
+                    new_file = add_file(NULL, res);
                 else
-                    add_file(data.files[x], res, i);
+                    new_file = add_file(data.files[x], res);
+            }
+            char *new_path = ft_strjoin(path, "/");
+            new_path = ft_strjoin(new_path, new_file->name);
+            if (new_file->type == DT_DIR && strcmp(new_file->name, ".") != 0 && strcmp(new_file->name, "..") != 0){
+                printf("%s\n", new_file->name);
+                read_dir(new_path, 0, true, new_file);
             }
             ++i;
         }
@@ -65,7 +74,7 @@ int main(int argc, char **argv) {
     int x = 0;
     while(tmp) {
         printf("before: %d\n", x);
-        read_dir(tmp->target, x);
+        read_dir(tmp->target, x, false, NULL);
         tmp = tmp->next;
         printf("after: %d\n", x);
         ++x;
