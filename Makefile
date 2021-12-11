@@ -1,11 +1,7 @@
 SRCS				= 	main.c \
-						srcs/node.c \
-						srcs/error.c \
-						srcs/parsing.c \
-						srcs/init.c \
-						srcs/output.c \
-						srcs/utils.c \
-						srcs/sort.c \
+						src/file.c \
+						src/utils.c \
+						
 
 OBJS				= ${SRCS:.c=.o}
 
