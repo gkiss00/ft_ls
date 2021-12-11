@@ -6,6 +6,11 @@ bool R = false;
 bool a = false;
 bool r = false;
 bool t = false;
+bool o = true;
+bool f = true;
+bool n = false;
+bool i = false;
+int date_type = MODIFICATION_DATE;
 
 void fill_opts(int argc, char **argv);
 void sort(char **files);
@@ -13,10 +18,18 @@ int get_tab_size(char **tab);
 
 void fill_opts(int argc, char **argv) {
     int opt;
-    while ((opt = getopt(argc, argv, "lRart")) != -1) {
+    while ((opt = getopt(argc, argv, "lRartcuofni")) != -1) {
         switch (opt) {
         case 'l':
             l = true;
+            break;
+        case 'o':
+            l = true;
+            o = false;
+            break;
+        case 'n':
+            l = true;
+            n = true;
             break;
         case 'R':
             R = true;
@@ -24,14 +37,29 @@ void fill_opts(int argc, char **argv) {
         case 'a':
             a = true;
             break;
+        case 'f':
+            a = true;
+            f = false;
+            break;
         case 'r':
             r = true;
             break;
         case 't':
             t = true;
             break;
+        case 'i':
+            i = true;
+            break;
+        case 'c':
+            t = true;
+            date_type = STATUS_DATE;
+            break;
+        case 'u':
+            t = true;
+            date_type = ACCESS_DATE;
+            break;
         default: /* aq?aq */
-            fprintf(stderr, "Usage: %s [-lRart] path\n", argv[0]);
+            fprintf(stderr, "Usage: %s [-lRartcuofni] <path>\n", argv[0]);
             exit(EXIT_FAILURE);
         }
     }
@@ -105,7 +133,9 @@ void output_permissions(mode_t mode) {
         printf("w");
     else
         printf("-");
-    if ((mode & S_IXUSR) == S_IXUSR)
+    if ((mode & S_ISUID) == S_ISUID)
+        printf("s");
+    else if ((mode & S_IXUSR) == S_IXUSR)
         printf("x");
     else
         printf("-");
@@ -137,8 +167,14 @@ void output_permissions(mode_t mode) {
         printf("-");
 }
 
-void ouput_timestamp(time_t time) {
-    char *timestamp = ctime(&time);
+void ouput_timestamp(struct stat time) {
+    char *timestamp = NULL;
+    if (date_type == MODIFICATION_DATE)
+        timestamp = ctime(&time.st_mtimespec.tv_sec);
+    else if (date_type == STATUS_DATE)
+        timestamp = ctime(&time.st_ctimespec.tv_sec);
+    else if (date_type == ACCESS_DATE)
+        timestamp = ctime(&time.st_atimespec.tv_sec);
     char tmp[strlen(timestamp)];
     memset(tmp, 0, strlen(timestamp));
     memcpy(tmp, timestamp, strlen(timestamp) - 1);
@@ -146,20 +182,31 @@ void ouput_timestamp(time_t time) {
 }
 
 void output_user(uid_t id) {
-    struct passwd *pwd;
-    pwd = getpwuid(id);
-    if(pwd)
-        printf(" %s", pwd->pw_name);
+    if(!n) {
+        struct passwd *pwd;
+        pwd = getpwuid(id);
+        if(pwd)
+            printf(" %s", pwd->pw_name);
+    } else {
+        printf(" %d", id);
+    }
+    
 }
 
 void output_group(gid_t id) {
-    struct group *group;
-    group = getgrgid(id);
-    if(group)
-        printf(" %s", group->gr_name);
+    if (o) {
+        if(!n) {
+            struct group *group;
+            group = getgrgid(id);
+            if(group)
+                printf(" %s", group->gr_name);
+        } else {
+            printf(" %d", id);
+        }
+    }
 }
 
-void output_name(t_file *file, char *symlink) {
+void output_name(t_file *file, char *symlink, mode_t mode) {
     if (file->type == DT_DIR) { // DIRECTORY
         printf(BOLD_CYAN);
     } else if (file->type == DT_CHR) { // CHARACTER DEVICE
@@ -170,8 +217,10 @@ void output_name(t_file *file, char *symlink) {
         printf(YELLOW);
     } else if (file->type == DT_LNK) { // SYMBOLIC LINK
         printf(PURPLE);
-    } else if (file->type == DT_REG) { // FILE
-
+    } else if (file->type == DT_REG && (mode & S_ISUID) == S_ISUID) { // FILE
+        printf(BLACK_ON_RED);
+    } else if (file->type == DT_REG && (mode & S_IXUSR) == S_IXUSR) { // FILE
+        printf(RED);
     } else if (file->type == DT_SOCK) { // UNIX DOMAIN SOCKET
         printf(GREEN);
     } else if (file->type == DT_UNKNOWN) { // UNKNOWN
@@ -185,10 +234,10 @@ void output_name(t_file *file, char *symlink) {
 
 void output_file(t_file *file, char *path) {
     if (a || (!a && file->name[0] != '.')) {
+        struct stat buff;
+        char *new_path = strjoin(strjoin(path, "/", FREE_S0), file->name, FREE_S1);
+        int stat_res = stat(new_path, &buff);
         if (l) {
-            struct stat buff;
-            char *new_path = strjoin(strjoin(path, "/", FREE_S0), file->name, FREE_S1);
-            int stat_res = stat(new_path, &buff);
             char *symlink = NULL;
             if (file->type == DT_LNK){
                 char c_buff[256];
@@ -207,6 +256,8 @@ void output_file(t_file *file, char *path) {
                 
             // type permissions nb_link proprio group taille eurodatage nom
             if(stat_res >= 0) {
+                if(i)
+                    printf("%lld ", buff.st_ino);
                 output_type(file->type);
                 output_permissions(buff.st_mode);
                 if(strcmp(file->name, "..") == 0)
@@ -215,8 +266,8 @@ void output_file(t_file *file, char *path) {
                 output_user(buff.st_uid);
                 output_group(buff.st_gid);
                 printf(" %ld", (long)buff.st_size);
-                ouput_timestamp(buff.st_ctimespec.tv_sec);
-                output_name(file, symlink);
+                ouput_timestamp(buff);
+                output_name(file, symlink, buff.st_mode);
                 printf("\n");
             } else {
                 printf("%s: Permission denied\n", new_path);
@@ -224,7 +275,9 @@ void output_file(t_file *file, char *path) {
             free(new_path);
             free(symlink);
         } else {
-            output_name(file, NULL);
+            if(i)
+                printf(" %lld ", buff.st_ino);
+            output_name(file, NULL, buff.st_mode);
         }
     }
 }
@@ -241,10 +294,13 @@ void read_dir(char *path) {
     while((res = readdir(dir)) != NULL) {
         files = add_file_to_tab_of_file(files, new_file(res->d_name, res->d_type));
     }
-    if (t)
-        sort_tab_of_file_by_date(files, path, r);
-    else
-        sort_tab_of_file_by_alpha(files, r);
+    if (f) {
+        if (t)
+            sort_tab_of_file_by_date(files, path, date_type, r);
+        else
+            sort_tab_of_file_by_alpha(files, r);
+    }
+    
     
     closedir(dir);
 

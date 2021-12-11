@@ -35,6 +35,10 @@
 # define SORT_BY_ALPHA 1
 # define SORT_BY_DATE 2
 
+# define MODIFICATION_DATE 1
+# define STATUS_DATE 2
+# define ACCESS_DATE 3
+
 typedef struct          s_file
 {
     char *name;
@@ -64,7 +68,7 @@ t_file **add_file_to_tab_of_file(t_file **files, t_file *file);
 
 // bubble sort
 void sort_tab_of_file_by_alpha(t_file **files, bool reverse);
-void sort_tab_of_file_by_date(t_file **files, char *path, bool reverse);
+void sort_tab_of_file_by_date(t_file **files, char *path, int date_type, bool reverse);
 
 char *strjoin(char *s1, char *s2, int fr);
 

@@ -61,7 +61,7 @@ void sort_tab_of_file_by_alpha(t_file **files, bool reverse) {
     }
 }
 
-void sort_tab_of_file_by_date(t_file **files, char *path, bool reverse) {
+void sort_tab_of_file_by_date(t_file **files, char *path, int date_type, bool reverse) {
     int size = get_tab_of_file_size(files);
     double *datums = malloc(get_tab_of_file_size(files) * sizeof(double));
 
@@ -70,7 +70,12 @@ void sort_tab_of_file_by_date(t_file **files, char *path, bool reverse) {
         char *new_path = strjoin(strjoin(path, "/", FREE_S0), files[i]->name, FREE_S1);
         int res = stat(new_path, &buff);
         if(res >= 0) {
-            datums[i] = (double)buff.st_mtimespec.tv_sec + (double)buff.st_mtimespec.tv_nsec / 1000000000;
+            if(date_type == MODIFICATION_DATE)
+                datums[i] = (double)buff.st_mtimespec.tv_sec + (double)buff.st_mtimespec.tv_nsec / 1000000000;
+            else if (date_type == STATUS_DATE)
+                datums[i] = (double)buff.st_ctimespec.tv_sec + (double)buff.st_ctimespec.tv_nsec / 1000000000;
+            else if (date_type == ACCESS_DATE)
+                datums[i] = (double)buff.st_atimespec.tv_sec + (double)buff.st_atimespec.tv_nsec / 1000000000;
         } else {
             printf("%s: Permission denied\n", new_path);
         }

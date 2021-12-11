@@ -35,6 +35,7 @@
 
 #define BLUE_ON_YELLOW "\033[0;34;43m"
 #define BLUE_ON_CYAN "\033[0;34;46m"
+#define BLACK_ON_RED "\033[0;30;41m"
 
 // ELSE
 #define BOLD "\033[1m"
