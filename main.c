@@ -162,22 +162,20 @@ void output_group(gid_t id) {
 void output_name(t_file *file, char *symlink) {
     if (file->type == DT_DIR) { // DIRECTORY
         printf(BOLD_CYAN);
-        //printf(CYAN);
     } else if (file->type == DT_CHR) { // CHARACTER DEVICE
         printf(BLUE_ON_YELLOW);
-        //printf(RED);
     } else if (file->type == DT_BLK) { // BLOCK DEVICE
         printf(BLUE_ON_CYAN);
     } else if (file->type == DT_FIFO) { // NAMED PIPE
-        //printf("p");
+        printf(YELLOW);
     } else if (file->type == DT_LNK) { // SYMBOLIC LINK
         printf(PURPLE);
     } else if (file->type == DT_REG) { // FILE
-        //printf("-");
+
     } else if (file->type == DT_SOCK) { // UNIX DOMAIN SOCKET
-        //printf("s");
+        printf(GREEN);
     } else if (file->type == DT_UNKNOWN) { // UNKNOWN
-        //printf("u"); // ??
+        printf(BOLD_CYAN);
     }
     printf(" %s", file->name);
     printf(WHITE);
