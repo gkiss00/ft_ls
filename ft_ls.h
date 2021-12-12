@@ -19,6 +19,7 @@
 # include <sys/socket.h>
 # include <sys/stat.h>
 # include <sys/time.h>
+# include <sys/ioctl.h>
 # include <arpa/inet.h>
 # include <netinet/in.h>
 # include <netinet/ip.h>
@@ -71,5 +72,6 @@ void sort_tab_of_file_by_alpha(t_file **files, bool reverse);
 void sort_tab_of_file_by_date(t_file **files, char *path, int date_type, bool reverse);
 
 char *strjoin(char *s1, char *s2, int fr);
+int number_len(int nb);
 
 #endif

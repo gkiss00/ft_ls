@@ -1,5 +1,8 @@
 #include "ft_ls.h"
 
+//DEV
+int fd = -1;
+
 // FLAGS
 bool l = false;
 bool R = false;
@@ -12,9 +15,19 @@ bool n = false;
 bool i = false;
 int date_type = MODIFICATION_DATE;
 
-void fill_opts(int argc, char **argv);
-void sort(char **files);
-int get_tab_size(char **tab);
+// COLUMN SIZE
+int inode_width = 0;
+int symbolic_link_width = 0;
+int user_width = 0;
+int group_width = 0;
+int file_size_width = 0;
+
+
+/* * * * * * * * * * * * * * * * * * * * *
+
+*               PARSING                  *
+
+* * * * * * * * * * * * * * * * * * * * */
 
 void fill_opts(int argc, char **argv) {
     int opt;
@@ -65,6 +78,12 @@ void fill_opts(int argc, char **argv) {
     }
 }
 
+/* * * * * * * * * * * * * * * * * * * * *
+
+*                UTILS                   *
+
+* * * * * * * * * * * * * * * * * * * * */
+
 int get_tab_size(char **tab) {
     int i = 0;
 
@@ -102,6 +121,38 @@ void sort(char **files) {
             break;
     }
 }
+
+/* * * * * * * * * * * * * * * * * * * * *
+
+*               GETTER                   *
+
+* * * * * * * * * * * * * * * * * * * * */
+
+int get_user_len(uid_t id) {
+    if(!n) {
+        struct passwd *pwd;
+        pwd = getpwuid(id);
+        return strlen(pwd->pw_name);
+    } else {
+        return number_len(id);
+    }
+}
+
+int get_group_len(gid_t id) {
+    if(!n) {
+        struct group *group;
+        group = getgrgid(id);
+        return strlen(group->gr_name);
+    } else {
+        return number_len(id);
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * *
+
+*               OUTPUT                   *
+
+* * * * * * * * * * * * * * * * * * * * */
 
 void output_type(unsigned char type) {
     if (type == DT_DIR) { // DIRECTORY
@@ -167,6 +218,30 @@ void output_permissions(mode_t mode) {
         printf("-");
 }
 
+void output_user(uid_t id) {
+    if(!n) {
+        struct passwd *pwd;
+        pwd = getpwuid(id);
+        if(pwd)
+            printf(" %-*s", user_width + 1, pwd->pw_name);
+    } else {
+        printf(" %-*d", user_width + 1, id);
+    }
+}
+
+void output_group(gid_t id) {
+    if (o) {
+        if(!n) {
+            struct group *group;
+            group = getgrgid(id);
+            if(group)
+                printf(" %-*s", group_width + 1, group->gr_name);
+        } else {
+            printf(" %-*d", group_width + 1, id);
+        }
+    }
+}
+
 void ouput_timestamp(struct stat time) {
     char *timestamp = NULL;
     if (date_type == MODIFICATION_DATE)
@@ -181,32 +256,8 @@ void ouput_timestamp(struct stat time) {
     printf(" %s", tmp);
 }
 
-void output_user(uid_t id) {
-    if(!n) {
-        struct passwd *pwd;
-        pwd = getpwuid(id);
-        if(pwd)
-            printf(" %s", pwd->pw_name);
-    } else {
-        printf(" %d", id);
-    }
-    
-}
-
-void output_group(gid_t id) {
-    if (o) {
-        if(!n) {
-            struct group *group;
-            group = getgrgid(id);
-            if(group)
-                printf(" %s", group->gr_name);
-        } else {
-            printf(" %d", id);
-        }
-    }
-}
-
 void output_name(t_file *file, char *symlink, mode_t mode) {
+    printf(" ");
     if (file->type == DT_DIR) { // DIRECTORY
         printf(BOLD_CYAN);
     } else if (file->type == DT_CHR) { // CHARACTER DEVICE
@@ -226,7 +277,7 @@ void output_name(t_file *file, char *symlink, mode_t mode) {
     } else if (file->type == DT_UNKNOWN) { // UNKNOWN
         printf(BOLD_CYAN);
     }
-    printf(" %s", file->name);
+    printf("%s", file->name);
     printf(WHITE);
     if(file->type == DT_LNK && symlink != NULL)
         printf(" -> %s", symlink);
@@ -257,15 +308,17 @@ void output_file(t_file *file, char *path) {
             // type permissions nb_link proprio group taille eurodatage nom
             if(stat_res >= 0) {
                 if(i)
-                    printf("%lld ", buff.st_ino);
+                    printf("%*lld ", inode_width, buff.st_ino);
                 output_type(file->type);
                 output_permissions(buff.st_mode);
-                if(strcmp(file->name, "..") == 0)
+                if(strcmp(new_path, "..") == 0 || strcmp(new_path, "./..") == 0)
                     printf("@");
-                printf(" %d", (int)buff.st_nlink);
+                else
+                    printf(" ");
+                printf("%*d", symbolic_link_width + 1, (int)buff.st_nlink);
                 output_user(buff.st_uid);
                 output_group(buff.st_gid);
-                printf(" %ld", (long)buff.st_size);
+                printf("%*ld", file_size_width + 1, (long)buff.st_size);
                 ouput_timestamp(buff);
                 output_name(file, symlink, buff.st_mode);
                 printf("\n");
@@ -282,6 +335,12 @@ void output_file(t_file *file, char *path) {
     }
 }
 
+/* * * * * * * * * * * * * * * * * * * * *
+
+*               PROCESS                  *
+
+* * * * * * * * * * * * * * * * * * * * */
+
 void read_dir(char *path) {
     DIR *dir = opendir(path);
     if(dir == NULL) {
@@ -289,10 +348,35 @@ void read_dir(char *path) {
         return ;
     }
 
+    int total = 0;
     t_file **files = NULL;
     struct dirent *res = NULL;
+    inode_width = 0;
+    symbolic_link_width = 0;
+    user_width = 0;
+    group_width = 0;
+    file_size_width = 0;
     while((res = readdir(dir)) != NULL) {
         files = add_file_to_tab_of_file(files, new_file(res->d_name, res->d_type));
+        struct stat buff;
+        if(l){
+            char *new_path = strjoin(strjoin(path, "/", FREE_S0), res->d_name, FREE_S1);
+            int stat_res = stat(new_path, &buff);
+            free(new_path);
+            if (a || (!a && res->d_name[0] != '.'))
+                if (stat_res >= 0)
+                    total += (int)buff.st_blocks;
+            if (number_len(buff.st_ino) > inode_width)
+                inode_width = number_len(buff.st_ino);
+            if (number_len(buff.st_nlink) > symbolic_link_width)
+                symbolic_link_width = number_len(buff.st_nlink);
+            if (number_len(buff.st_size) > file_size_width)
+                file_size_width = number_len(buff.st_size);
+            if (get_user_len(buff.st_uid) > user_width)
+                user_width = get_user_len(buff.st_uid);
+            if (get_group_len(buff.st_gid) > group_width)
+                group_width = get_group_len(buff.st_gid);
+        }
     }
     if (f) {
         if (t)
@@ -300,61 +384,15 @@ void read_dir(char *path) {
         else
             sort_tab_of_file_by_alpha(files, r);
     }
-    
-    
+
     closedir(dir);
 
-    if (l) {
-        struct stat buff;
-        int res = stat(path, &buff);
-        if(res >= 0) {
-            printf("total %lld\n", buff.st_blocks);
-        } else {
-            printf("%s: Permission denied\n", path);
-        }
-    }
+    if (l)
+        printf("total %d\n", total);
 
-    // for each file
-    for (int i = 0; i < get_tab_of_file_size(files); ++i) {
-        switch(files[i]->type) {
-            // regular file
-            case DT_REG:
-                output_file(files[i], path);
-                break;
-            // directory
-            case DT_DIR:
-                output_file(files[i], path);
-                break;
-            // peripheric bloc
-            case DT_BLK:
-                output_file(files[i], path);
-                break;
-            // peripheric caract
-            case DT_CHR:
-                output_file(files[i], path);
-                break;
-            // FIFO pipe
-            case DT_FIFO:
-                output_file(files[i], path);
-                break;
-            // symbolic link
-            case DT_LNK:
-                output_file(files[i], path);
-                break;
-            // UNIX socket
-            case DT_SOCK:
-                output_file(files[i], path);
-                break;
-            // unknow file
-            case DT_UNKNOWN:
-                output_file(files[i], path);
-                break;
-            default:
-                fprintf(stderr, "ft_ls: an unexpected error has occured\n");
-                exit(EXIT_FAILURE);
-                break;
-        }
-    }
+    for (int i = 0; i < get_tab_of_file_size(files); ++i)
+        output_file(files[i], path);
+
     if (R) {
         for (int i = 0; i < get_tab_of_file_size(files); ++i) {
             if (
