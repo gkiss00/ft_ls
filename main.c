@@ -400,10 +400,14 @@ void read_dir(char *path) {
                 strcmp(files[i]->name, ".") != 0 &&
                 strcmp(files[i]->name, "..") != 0
             ) {
-                char *new_path = strjoin(strjoin(path, "/", FREE_S0), files[i]->name, FREE_S1);
-                printf("\n%s:\n", new_path);
-                read_dir(new_path);
-                free(new_path);
+                if (a || (!a && files[i]->name[0] != '.')) {
+                    char *new_path = strjoin(strjoin(path, "/", FREE_S0), files[i]->name, FREE_S1);
+                    printf("\n%s:\n", new_path);
+                    read_dir(new_path);
+                    if(!l)
+                        printf("\n");
+                    free(new_path);
+                } 
             }
         }
     }
